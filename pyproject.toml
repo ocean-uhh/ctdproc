@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctdproc"
+version = "0.1.0"
+description = "CTD Processing"
+readme = "README.md"
+authors = [
+    { name = "Joel Bracamontes Ramirez", email = "joebra.92@gmail.com" }
+]
+
+# For conda
+requires-python = ">=3.12, <3.13"
+
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Intended Audience :: Science/Research",
+]
+
+# SEA-BIRD
+dependencies = [
+    "gsw~=3.6.20",
+    "matplotlib~=3.9.4",
+    "numpy~=2.0.2",
+    "pandas~=2.3.3",
+    "scipy~=1.13.1",
+    "plotly~=6.3.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "seabirdscientific*"]
+

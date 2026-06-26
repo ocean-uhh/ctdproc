@@ -1,0 +1,14 @@
+# Similar to Sea-Bird Scientific 2.7.9
+
+# Sea-Bird toolkit
+gsw~=3.6.20
+matplotlib~=3.9.4
+numpy~=2.0.2
+pandas~=2.3.3
+scipy~=1.13.1
+plotly~=6.3.1
+
+# For Jupyter
+jupyter>=1.0.0
+notebook~=7.4.7
+
