@@ -13,6 +13,20 @@ def build_parser(subparsers=None):
                     "minimizes the down/up-cast salinity difference",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Config: needs a 'celltm_settings' block, one entry per cast/sensor to search:
+  celltm_settings:
+    pressure_upper: [...]       # upper pressure bound for the search (dbar)
+    pressure_lower: [...]       # lower pressure bound for the search (dbar)
+    bin_temperature: [...]      # temperature bin size for the down/up comparison
+    temperature_touse: [...]    # which temperature column to use, e.g. temperature
+    conductivity_touse: [...]   # which conductivity column to correct, e.g. conductivity
+All five lists must be the same length - one entry per cast/sensor.
+Search grid is fixed (alpha 0.01-0.09, tau 1-16), not configurable per cast.
+
+Output: alpha_tau_report.csv (per-cast + campaign-average alpha/tau; a fit
+landing on the grid's edge is flagged 'edge_pinned' and excluded from the
+average) + one contour plot per cast/sensor.
+
 Examples:
   ctdproc celltm config_celltm.yaml
   ctdproc celltm config_celltm.yaml --output-dir outputs/

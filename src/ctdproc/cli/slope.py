@@ -13,6 +13,21 @@ def build_parser(subparsers=None):
                     "vs. bottle/salinometer comparisons",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Config: needs a 'slope_settings' block, one entry per temperature/conductivity
+sensor pair to fit:
+  slope_settings:
+    bottle_sal_file: "Bottle_Salinity.csv"  # columns: Station, No_bottle, Sal_avg
+    scan_offset: [...]        # seconds before bottle closure to average over
+    scan_duration: [...]      # seconds to average
+    temperature_sensors: [...]    # e.g. temperature, temperature2
+    conductivity_sensors: [...]   # e.g. conductivity, conductivity2
+scan_offset/scan_duration/temperature_sensors/conductivity_sensors must all
+be the same length - one entry per sensor pair.
+
+Output: slope_report.csv (per-sensor-pair slope + per-bottle detail, after
+iterative 3-sigma outlier rejection) + two ratio plots per pair (all points,
+and with outliers removed).
+
 Examples:
   ctdproc slope config_saltcorr.yaml
   ctdproc slope config_saltcorr.yaml --output-dir outputs/
