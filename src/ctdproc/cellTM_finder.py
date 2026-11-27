@@ -1,10 +1,14 @@
-def cellTM_finder(yaml_file):
+def cellTM_finder(yaml_file, data_dir=None, output_dir=None):
     """Grid-search the cell thermal mass (alpha, tau) correction that
     minimizes the down/up-cast salinity difference, for each cast in a
     config's index range.
 
     INPUT:
-      yaml_file  =  path to a celltm-finder YAML config    [ str or Path ]
+      yaml_file   =  path to a celltm-finder YAML config    [ str or Path ]
+      data_dir    =  override config's constants.data_dir, or None to
+                      use the config value (or '../data' if absent)     [ str or Path or None ]
+      output_dir  =  override config's constants.output_dir, or None to
+                      use the config value (or '.' if absent)            [ str or Path or None ]
 
     OUTPUT:
       writes alpha_tau_report.csv (per-cast and campaign-average
@@ -46,6 +50,7 @@ def cellTM_finder(yaml_file):
     apply_wild_edit,
     apply_celltm,
     )
+    from pathlib import Path
 
     with open(yaml_file, "r") as file:
         config = yaml.safe_load(file)
@@ -53,6 +58,9 @@ def cellTM_finder(yaml_file):
         numi,denomi=config['constants']['sample_interval'].split('/')
         sample_interval=float(numi)/float(denomi)
     BAD_FLAG_VALUE = np.float64(-9.99e-29)
+    data_dir = Path(data_dir if data_dir is not None else config['constants'].get('data_dir', '../data'))
+    output_dir = Path(output_dir if output_dir is not None else config['constants'].get('output_dir', '.'))
+    output_dir.mkdir(parents=True, exist_ok=True)
     tau_alpha_values = []
     calib_step = config.get("celltm_settings",{})
     check_step_lists(
@@ -66,8 +74,9 @@ def cellTM_finder(yaml_file):
     validate_features(config.get('features'), ['align', 'low_filter', 'wild_edit'])
     for j in list(range(config['constants']['ind'][0],config['constants']['ind'][1]+1)):
 
-        raw_data = load_raw_data("../data/"+config['constants']['name']+'_'+str(j).zfill(3)+'.hex')
-        data = convert_data(raw_data,"../data/"+config['constants']['name']+'_'+str(j).zfill(3)+'.xmlcon',sample_interval,convert_optional=False)
+        base = config['constants']['name']+'_'+str(j).zfill(3)
+        raw_data = load_raw_data(data_dir / (base+'.hex'))
+        data = convert_data(raw_data, data_dir / (base+'.xmlcon'), sample_interval, convert_optional=False)
 
         for feat in config.get('features') or []:
             func_name = feat.get('name')
@@ -139,7 +148,7 @@ def cellTM_finder(yaml_file):
             plt.title(f'Cell Thermal Mass Optimization - Cast {str(j).zfill(3)} ({C_to_use})')
             plt.legend()
             
-            plt.savefig(f"celltm_plot_cast_{str(j).zfill(3)}_{C_to_use}.png", dpi=150)
+            plt.savefig(output_dir / f"celltm_plot_cast_{str(j).zfill(3)}_{C_to_use}.png", dpi=150)
             plt.close()
     df_tau_alpha = pd.DataFrame(tau_alpha_values)
 
@@ -152,7 +161,7 @@ def cellTM_finder(yaml_file):
     df_means['cast_no'] = 'AVERAGE'
     df_means = df_means[['cast_no', 'temperature', 'conductivity', 'tau', 'alpha', 'abs(S-S_corrected)']]
 
-    with open('alpha_tau_report.csv', 'w', encoding='utf-8') as f:
+    with open(output_dir / 'alpha_tau_report.csv', 'w', encoding='utf-8') as f:
         f.write("# === DETAILED LOG PER CAST (edge_pinned=True rows excluded from the average below) ===\n")
         df_tau_alpha.to_csv(f, index=False)
 
