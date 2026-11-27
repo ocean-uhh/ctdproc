@@ -1,9 +1,13 @@
-def ctdalign_finder(yaml_file):
+def ctdalign_finder(yaml_file, data_dir=None, output_dir=None):
     """Measure the time lag between a lead/lag variable pair across a range
     of casts, via crosshigh's cross-correlation.
 
     INPUT:
-      yaml_file  =  path to an alignment-finder YAML config    [ str or Path ]
+      yaml_file   =  path to an alignment-finder YAML config    [ str or Path ]
+      data_dir    =  override config's constants.data_dir, or None to
+                      use the config value (or '../data' if absent)     [ str or Path or None ]
+      output_dir  =  override config's constants.output_dir, or None to
+                      use the config value (or '.' if absent)            [ str or Path or None ]
 
     OUTPUT:
       writes alignment_report.csv (per-cast and campaign-average
@@ -35,13 +39,17 @@ def ctdalign_finder(yaml_file):
         check_step_lists,
     )
     from .utilities import extract_head_hex, add_timestamp
-
+    from pathlib import Path
 
     with open(yaml_file, "r") as file:
         config = yaml.safe_load(file)
     if type(config['constants']['sample_interval'])==str:
         numi,denomi=config['constants']['sample_interval'].split('/')
         sample_interval=float(numi)/float(denomi)
+
+    data_dir = Path(data_dir if data_dir is not None else config['constants'].get('data_dir', '../data'))
+    output_dir = Path(output_dir if output_dir is not None else config['constants'].get('output_dir', '.'))
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     offset_alignment_values = []
     step = config.get("alignment_settings",{})
@@ -55,8 +63,9 @@ def ctdalign_finder(yaml_file):
     )
     for j in list(range(config['constants']['ind'][0],config['constants']['ind'][1]+1)):
 
-        raw_data = load_raw_data("../data/"+config['constants']['name']+'_'+str(j).zfill(3)+'.hex')
-        data = convert_data(raw_data,"../data/"+config['constants']['name']+'_'+str(j).zfill(3)+'.xmlcon',sample_interval,convert_optional=False)
+        base = config['constants']['name']+'_'+str(j).zfill(3)
+        raw_data = load_raw_data(data_dir / (base+'.hex'))
+        data = convert_data(raw_data, data_dir / (base+'.xmlcon'), sample_interval, convert_optional=False)
 
         for var_lead, var_lag, max_lag, pre_up,pre_lo in zip(
 
@@ -100,7 +109,7 @@ def ctdalign_finder(yaml_file):
     df_means = df_means[['cast_no', 'variable_lead', 'variable_lag', 'lag_down_cast', 'lag_up_cast']]
 
 
-    with open('alignment_report.csv', 'w', encoding='utf-8') as f:
+    with open(output_dir / 'alignment_report.csv', 'w', encoding='utf-8') as f:
         f.write("# === DETAILED LOG PER CAST ===\n")
         df_lags.to_csv(f, index=False)
     

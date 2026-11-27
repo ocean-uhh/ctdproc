@@ -1,10 +1,14 @@
-def slopecorrection_finder(yaml_file):
+def slopecorrection_finder(yaml_file, data_dir=None, output_dir=None):
     """Fit a per-sensor-pair conductivity slope (gain) correction from CTD
     vs. bottle/salinometer comparisons, using iterative 3-sigma outlier
     rejection.
 
     INPUT:
-      yaml_file  =  path to a slope-correction-finder YAML config    [ str or Path ]
+      yaml_file   =  path to a slope-correction-finder YAML config    [ str or Path ]
+      data_dir    =  override config's constants.data_dir, or None to
+                      use the config value (or '../data' if absent)     [ str or Path or None ]
+      output_dir  =  override config's constants.output_dir, or None to
+                      use the config value (or '.' if absent)            [ str or Path or None ]
 
     OUTPUT:
       writes slope_report.csv (summary + detailed per-bottle log) and
@@ -50,6 +54,7 @@ def slopecorrection_finder(yaml_file):
     apply_wild_edit,
     apply_celltm,
     )
+    from pathlib import Path
 
     with open(yaml_file, "r") as file:
         config = yaml.safe_load(file)
@@ -57,7 +62,9 @@ def slopecorrection_finder(yaml_file):
         numi,denomi=config['constants']['sample_interval'].split('/')
         sample_interval=float(numi)/float(denomi)
     BAD_FLAG_VALUE = np.float64(-9.99e-29)
-    path_dir_data = '../data/'
+    data_dir = Path(data_dir if data_dir is not None else config['constants'].get('data_dir', '../data'))
+    output_dir = Path(output_dir if output_dir is not None else config['constants'].get('output_dir', '.'))
+    output_dir.mkdir(parents=True, exist_ok=True)
     a_b_stations_m_values = []
     detailed_points = []
     slope_step = config.get("slope_settings",{})
@@ -94,9 +101,9 @@ def slopecorrection_finder(yaml_file):
         for station in unique_stations:
 
 
-            hex_file = path_dir_data+station+".hex"
-            xmlconfile = path_dir_data+station+".XMLCON"
-            bl_file = path_dir_data+station+'.bl'
+            hex_file = data_dir / (station+".hex")
+            xmlconfile = data_dir / (station+".XMLCON")
+            bl_file = data_dir / (station+'.bl')
 
             raw_data = load_raw_data(hex_file)
             data=convert_data(raw_data,xmlconfile,sample_interval,convert_optional=False)
@@ -206,7 +213,7 @@ def slopecorrection_finder(yaml_file):
         ax.legend(loc='upper right')
         ax.grid(True, linestyle=':', alpha=0.5)
         plt.tight_layout()
-        plt.savefig(f"Conductivity_ratio_report_{cond}_all.png", dpi=150)
+        plt.savefig(output_dir / f"Conductivity_ratio_report_{cond}_all.png", dpi=150)
         plt.close()
 
         fig, ax = plt.subplots(1, 1, figsize=(15, 5))
@@ -220,7 +227,7 @@ def slopecorrection_finder(yaml_file):
         ax.legend(loc='upper right')
         ax.grid(True, linestyle=':', alpha=0.5)
         plt.tight_layout()
-        plt.savefig(f"Conductivity_ratio_report_{cond}_clean.png", dpi=150)
+        plt.savefig(output_dir / f"Conductivity_ratio_report_{cond}_clean.png", dpi=150)
         plt.close()
 
 
@@ -230,7 +237,7 @@ def slopecorrection_finder(yaml_file):
     df_detailed = pd.DataFrame(detailed_points)
 
 
-    with open('slope_report.csv', 'w', encoding='utf-8') as f:
+    with open(output_dir / 'slope_report.csv', 'w', encoding='utf-8') as f:
         f.write("# === CAMPAIGN SUMMARY AVERAGES (COMPUTED PARAMETERS) ===\n")
         df_summary.to_csv(f, index=False)
 

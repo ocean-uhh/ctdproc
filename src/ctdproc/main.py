@@ -1,8 +1,12 @@
-def CTD_process(yaml_file):
+def CTD_process(yaml_file, data_dir=None, output_dir=None):
     """Run the full per-cast CTD processing pipeline from a YAML config.
 
     INPUT:
-      yaml_file  =  path to a cast-processing YAML config    [ str or Path ]
+      yaml_file   =  path to a cast-processing YAML config               [ str or Path ]
+      data_dir    =  override config's constants.data_dir, or None to
+                      use the config value (or '../data' if absent)        [ str or Path or None ]
+      output_dir  =  override config's constants.output_dir, or None to
+                      use the config value (or '.' if absent)               [ str or Path or None ]
 
     OUTPUT:
       writes one .cnv file (and/or per-bin files) per cast; no return value
@@ -52,8 +56,8 @@ def CTD_process(yaml_file):
         numi,denomi=config['constants']['sample_interval'].split('/')
         sample_interval=float(numi)/float(denomi)
 
-    data_dir = Path(config['constants'].get('data_dir', '../data'))
-    output_dir = Path(config['constants'].get('output_dir', '.'))
+    data_dir = Path(data_dir if data_dir is not None else config['constants'].get('data_dir', '../data'))
+    output_dir = Path(output_dir if output_dir is not None else config['constants'].get('output_dir', '.'))
     output_dir.mkdir(parents=True, exist_ok=True)
 
 
