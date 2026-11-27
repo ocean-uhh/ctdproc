@@ -38,7 +38,7 @@ def CTD_process(yaml_file, data_dir=None, output_dir=None):
         find_opt_alp_tat,
         validate_features,
     )
-    from .utilities import extract_head_hex, add_timestamp
+    from .utilities import extract_head_hex, extract_sensor_array_xml, add_timestamp
     from .pipeline import (
     apply_align,
     apply_low_filter,
@@ -227,6 +227,13 @@ def CTD_process(yaml_file, data_dir=None, output_dir=None):
                 lat_deg = int(lat)
                 lat_min = abs(lat - lat_deg) * 60.0
                 sbe_header.append(f"** Latitude: {lat_deg} {lat_min:.4f}\n")
+            sbe_header.append(f"# bad_flag = {BAD_FLAG_VALUE:.3e}\n")
+            # Real calibration info (serial numbers, calibration dates, coefficients)
+            # straight from the .XMLCON, same as real Sea-Bird software embeds a
+            # <Sensors> block in its own .cnv output - this is the .XMLCON's own
+            # <SensorArray> block verbatim, not a byte-for-byte reproduction of
+            # Seasave's relabeled Sensors/sensor-Channel convention.
+            sbe_header.extend(extract_sensor_array_xml(data_dir / (base + '.xmlcon')))
             sbe_header.append("*END*\n")
 
             with open(nominal_name, "w", encoding="utf-8") as f:

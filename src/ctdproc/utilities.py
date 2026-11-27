@@ -32,6 +32,28 @@ def extract_head_hex(
     return for_heading
 
 
+def extract_sensor_array_xml(xmlcon_file: str) -> list:
+    """Extract the <SensorArray>...</SensorArray> block from a .XMLCON file
+    (serial numbers, calibration dates, coefficients - everything under it),
+    as raw text lines for embedding in a .cnv header.
+
+    INPUT:
+      xmlcon_file  =  path to a .XMLCON file          [ str or Path ]
+
+    OUTPUT:
+      lines from <SensorArray ...> through </SensorArray>, each prefixed
+      "# " and newline-terminated, or [] if not found     [ list[str] ]
+    """
+    with open(xmlcon_file, "r", encoding="latin-1") as f:
+        text = f.read()
+    start = text.find("<SensorArray")
+    end = text.find("</SensorArray>")
+    if start == -1 or end == -1:
+        return []
+    end += len("</SensorArray>")
+    return [f"# {line}\n" for line in text[start:end].splitlines()]
+
+
 def add_timestamp(ref_time, header, scans):
     """Convert a scan index into a Julian day-of-year timestamp.
 
