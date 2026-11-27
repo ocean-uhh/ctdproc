@@ -21,9 +21,12 @@ def CTD_process(yaml_file, data_dir=None, output_dir=None):
     )
 
     import datetime as datetime
+    import importlib.metadata
     import numpy as np
     import pandas as pd
     import gsw
+
+    ctdproc_version = importlib.metadata.version("ctdproc")
 
     import seabirdscientific.conversion as conv
     import seabirdscientific.instrument_data as id_sbs
@@ -216,10 +219,20 @@ def CTD_process(yaml_file, data_dir=None, output_dir=None):
                         start_time = line.split('=')[1].strip()
                         break
 
+            # Round once, reuse for both the # span header lines and the data block
+            # itself, so the reported span always matches what's actually written.
+            rounded = data[[c[0] for c in sbe_cols]].round(decimales)
+
             sbe_header = []
+            sbe_header.append(f"# nquan = {len(sbe_cols)}\n")
             sbe_header.append(f"# nvalues = {data.shape[0]}\n")
+            sbe_header.append("# units = specified\n")
             for idx, (col, label, desc, units) in enumerate(sbe_cols):
                 sbe_header.append(f"# name {idx} = {label}: {desc} [{units}]\n")
+            for idx, (col, label, desc, units) in enumerate(sbe_cols):
+                col_min = rounded[col].min()
+                col_max = rounded[col].max()
+                sbe_header.append(f"# span {idx} = {col_min}, {col_max}\n")
             sbe_header.append(f"# interval = seconds: {round(sample_interval, 6)}\n")
             sbe_header.append(f"# start_time = {start_time}\n")
             if 'latitude' in data.columns and pd.notna(data['latitude'].iloc[0]):
@@ -234,12 +247,24 @@ def CTD_process(yaml_file, data_dir=None, output_dir=None):
             # <SensorArray> block verbatim, not a byte-for-byte reproduction of
             # Seasave's relabeled Sensors/sensor-Channel convention.
             sbe_header.extend(extract_sensor_array_xml(data_dir / (base + '.xmlcon')))
+            # Provenance: real Sea-Bird software records this as "datcnv_date"/
+            # "datcnv_in" (datcnv is its own processing program's name) - named
+            # ctdproc_* here instead, since this file names ctdproc, not datcnv, as
+            # what actually produced it. No equivalent of Seasave's "datcnv_skipover"
+            # is written - ctdproc has no scan-skipping option, so there's nothing
+            # true to put there.
+            sbe_header.append(
+                f"# ctdproc_date = {datetime.datetime.now().strftime('%b %d %Y %H:%M:%S')}, "
+                f"ctdproc {ctdproc_version}\n"
+            )
+            sbe_header.append(f"# ctdproc_in = {data_dir / (base + '.hex')} {data_dir / (base + '.xmlcon')}\n")
+            sbe_header.append("# file_type = ascii\n")
             sbe_header.append("*END*\n")
 
             with open(nominal_name, "w", encoding="utf-8") as f:
                 f.writelines(sbe_header)
 
-            data[[c[0] for c in sbe_cols]].round(decimales).to_csv(
+            rounded.to_csv(
                 nominal_name,
                 sep=' ',
                 header=False,
