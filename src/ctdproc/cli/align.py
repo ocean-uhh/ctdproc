@@ -13,6 +13,19 @@ def build_parser(subparsers=None):
                     "of casts, via cross-correlation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Config: needs an 'alignment_settings' block, one entry per lead/lag pair to
+check:
+  alignment_settings:
+    variable_lead: [...]      # the leading variable, e.g. pressure
+    variable_lag: [...]       # the lagging variable to align, e.g. conductivity
+    max_lag: [...]            # max lag to search, in scans
+    pressure_upper: [...]     # upper pressure bound for the search window (dbar)
+    pressure_lower: [...]     # lower pressure bound for the search window (dbar)
+All five lists must be the same length - one entry per pair.
+
+Output: alignment_report.csv (per-cast + campaign-average lag, in a sign
+already matching the 'align' feature step's own offset: convention).
+
 Examples:
   ctdproc align config_align.yaml
   ctdproc align config_align.yaml --output-dir outputs/
